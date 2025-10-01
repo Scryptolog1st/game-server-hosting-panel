@@ -1,0 +1,17 @@
+node_modules/
+.turbo/
+dist/
+build/
+coverage/
+.env
+.env.*
+.DS_Store
+*.log
+pnpm-lock.yaml
+# Go
+agent/bin/
+agent/dist/
+agent/agent
+# IDE
+.idea/
+.vscode/

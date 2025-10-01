@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  node-packages:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: [panel, licensing-server, web]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Enable corepack
+        run: corepack enable
+      - name: Install pnpm
+        run: corepack prepare pnpm@latest --activate
+      - name: Install deps
+        run: pnpm install
+      - name: Lint
+        run: pnpm -C ${{ matrix.package }} lint || true
+      - name: Build
+        run: pnpm -C ${{ matrix.package }} build
+      - name: Test
+        run: pnpm -C ${{ matrix.package }} test --if-present
+
+  go-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Build agent
+        run: |
+          cd agent
+          go build -o bin/agent ./cmd/agent
