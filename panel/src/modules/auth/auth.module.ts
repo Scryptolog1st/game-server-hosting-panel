@@ -11,5 +11,6 @@ import { JwtGuard } from './jwt.guard';
   imports: [UsersModule, OrgsModule, DbModule],
   controllers: [AuthController],
   providers: [AuthService, JwtService, JwtGuard],
+  exports: [JwtService],              // 👈 export so other modules can use it
 })
 export class AuthModule { }
