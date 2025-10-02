@@ -42,8 +42,16 @@ export const api = {
   createServer: (payload: any) =>
     req('/servers', { method: 'POST', body: JSON.stringify(payload) }),
 
-  // nodes
+  // list nodes
   listNodes: () => req('/nodes'),
+
+  // create enrollment token (Owner/Admin/Operator)
+  createEnrollToken: (ttlMinutes: number) =>
+    req('/nodes/tokens', {
+      method: 'POST',
+      body: JSON.stringify({ ttlMinutes }),
+    }),
+
 
   // assignments
   assignServer: (serverId: string, nodeId: string) =>

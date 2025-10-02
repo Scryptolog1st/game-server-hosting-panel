@@ -1,43 +1,78 @@
 import React, { useEffect, useState } from 'react';
-import { Login } from './Login';
-import { api, clearTokens } from './api';
+import { getToken, setTokens, clearTokens, api } from './api';
 import { Servers } from './Servers';
+import { Nodes } from './Nodes';
 
-export function App() {
-  const [ready, setReady] = useState(false);
-  const [user, setUser] = useState<{ userId: string; orgId: string } | null>(null);
 
-  const tryMe = async () => {
+type View = 'login' | 'servers' | 'nodes';
+
+export default function App() {
+  const [view, setView] = useState<View>('login');
+  const [email, setEmail] = useState('owner@example.com');
+  const [password, setPassword] = useState('Str0ngPass!');
+  const [org, setOrg] = useState<string | null>(null);
+  const [msg, setMsg] = useState('');
+
+  useEffect(() => {
+    if (getToken()) {
+      api.me().then((me: any) => {
+        setOrg(me.org);
+        setView('servers');
+      }).catch(() => clearTokens());
+    }
+  }, []);
+
+  const signin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMsg('');
     try {
-      const me = await api.me();
-      setUser(me);
-    } catch {
-      setUser(null);
-    } finally {
-      setReady(true);
+      const r: any = await api.login(email, password);
+      setTokens(r.access, r.refresh);
+      const me: any = await api.me();
+      setOrg(me.org);
+      setView('servers');
+    } catch (e: any) {
+      setMsg(e.message || String(e));
     }
   };
 
-  useEffect(() => { tryMe(); }, []);
+  const signout = () => {
+    clearTokens();
+    setOrg(null);
+    setView('login');
+  };
 
-  if (!ready) return <div style={{ padding:24 }}>Loading…</div>;
-
-  if (!user) return (
-    <div style={{ padding:24 }}>
-      <Login onLoggedIn={tryMe} />
-    </div>
-  );
+  if (view === 'login') {
+    return (
+      <div style={{ padding: 24 }}>
+        <h1>Login</h1>
+        <form onSubmit={signin} style={{ display: 'grid', gap: 8, maxWidth: 400 }}>
+          <input value={email} onChange={e => setEmail(e.target.value)} placeholder="email" />
+          <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="password" />
+          <button type="submit">Sign in</button>
+        </form>
+        {msg && <div style={{ color: 'red' }}>{msg}</div>}
+      </div>
+    );
+  }
 
   return (
-    <div style={{ padding:24, display:'grid', gap:16 }}>
-      <header style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+    <div style={{ padding: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1>GameServer Admin Panel</h1>
-        <div style={{ display:'flex', gap:12, alignItems:'center' }}>
-          <span>Org: {user.orgId.slice(0,8)}…</span>
-          <button onClick={()=>{ clearTokens(); setUser(null); }}>Sign out</button>
+        <div>
+          {org && <span style={{ marginRight: 8 }}>Org: {org.slice(0, 10)}…</span>}
+          <button onClick={signout}>Sign out</button>
         </div>
-      </header>
-      <Servers />
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <button onClick={() => setView('servers')}>Servers</button>
+        <button onClick={() => setView('nodes')}>Nodes</button>
+      </div>
+
+      {view === 'servers' && <Servers />}
+      {view === 'nodes' && <Nodes />}
     </div>
   );
 }
