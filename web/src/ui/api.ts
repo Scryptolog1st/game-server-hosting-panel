@@ -23,9 +23,25 @@ async function req(path: string, opts: RequestInit = {}) {
 }
 
 export const api = {
+  // auth
   login: (email: string, password: string) =>
     req('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   me: () => req('/auth/me'),
+
+  // servers
   listServers: () => req('/servers'),
-  createServer: (payload: any) => req('/servers', { method: 'POST', body: JSON.stringify(payload) }),
+  createServer: (payload: any) =>
+    req('/servers', { method: 'POST', body: JSON.stringify(payload) }),
+
+  // nodes
+  listNodes: () => req('/nodes'),
+
+  // assignments
+  assignServer: (serverId: string, nodeId: string) =>
+    req(`/servers/${serverId}/assign`, {
+      method: 'PATCH',
+      body: JSON.stringify({ nodeId }),
+    }),
+  unassignServer: (serverId: string) =>
+    req(`/servers/${serverId}/unassign`, { method: 'PATCH' }),
 };

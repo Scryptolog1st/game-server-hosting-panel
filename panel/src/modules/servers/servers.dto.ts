@@ -15,3 +15,8 @@ export const UpdateServerDTO = z.object({
   ports: z.any().optional(),
   config: z.any().optional(),
 });
+
+export const AssignServerDTO = z.object({
+  nodeId: z.string().min(10),
+});
+

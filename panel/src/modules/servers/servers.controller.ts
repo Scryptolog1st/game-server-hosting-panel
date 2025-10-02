@@ -5,6 +5,7 @@ import { CurrentUser as CU } from '../auth/current-user.decorator';
 import { CreateServerDTO, UpdateServerDTO } from './servers.dto';
 import { RequireRoles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
+import { AssignServerDTO } from './servers.dto';
 
 function parse<T>(schema: any, body: unknown): T {
   const r = schema.safeParse(body);
@@ -15,7 +16,7 @@ function parse<T>(schema: any, body: unknown): T {
 @UseGuards(JwtGuard)
 @Controller('servers')
 export class ServersController {
-  constructor(private readonly svc: ServersService) {}
+  constructor(private readonly svc: ServersService) { }
 
   @Get()
   async list(@CU() user: any) {
@@ -29,7 +30,7 @@ export class ServersController {
 
   @Post()
   @UseGuards(RolesGuard)
-  @RequireRoles('Owner','Admin','Operator')
+  @RequireRoles('Owner', 'Admin', 'Operator')
   async create(@CU() user: any, @Body() body: unknown) {
     const dto = parse<any>(CreateServerDTO, body);
     return this.svc.create(user.org, dto);
@@ -37,7 +38,7 @@ export class ServersController {
 
   @Patch(':id')
   @UseGuards(RolesGuard)
-  @RequireRoles('Owner','Admin','Operator')
+  @RequireRoles('Owner', 'Admin', 'Operator')
   async update(@CU() user: any, @Param('id') id: string, @Body() body: unknown) {
     const dto = parse<any>(UpdateServerDTO, body);
     return this.svc.update(user.org, id, dto);
@@ -45,8 +46,23 @@ export class ServersController {
 
   @Delete(':id')
   @UseGuards(RolesGuard)
-  @RequireRoles('Owner','Admin')
+  @RequireRoles('Owner', 'Admin')
   async remove(@CU() user: any, @Param('id') id: string) {
     return this.svc.remove(user.org, id);
+  }
+
+  @Patch(':id/assign')
+  @UseGuards(RolesGuard)
+  @RequireRoles('Owner', 'Admin', 'Operator')
+  async assign(@CU() user: any, @Param('id') id: string, @Body() body: unknown) {
+    const dto = parse<{ nodeId: string }>(AssignServerDTO, body);
+    return this.svc.assign(user.org, id, dto.nodeId);
+  }
+
+  @Patch(':id/unassign')
+  @UseGuards(RolesGuard)
+  @RequireRoles('Owner', 'Admin', 'Operator')
+  async unassign(@CU() user: any, @Param('id') id: string) {
+    return this.svc.unassign(user.org, id);
   }
 }
