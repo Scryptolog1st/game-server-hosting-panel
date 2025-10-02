@@ -45,6 +45,16 @@ model RefreshToken {
   revokedAt DateTime?
 }
 
+model EnrollmentToken {
+  id           String   @id @default(cuid())
+  orgId        String
+  tokenHash    String   @unique
+  createdById  String
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
+  revokedAt    DateTime?
+}
+
 model ServerNode {
   id         String   @id @default(cuid())
   orgId      String
@@ -52,6 +62,7 @@ model ServerNode {
   hostname   String
   status     String   @default("unknown")
   lastSeenAt DateTime?
+  nodeKeyHash String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   servers    GameServer[]
