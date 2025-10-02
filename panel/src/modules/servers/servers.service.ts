@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../db/prisma.service';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+
 
 @Injectable()
 export class ServersService {
@@ -48,5 +49,51 @@ export class ServersService {
     if (!exists) throw new NotFoundException('Server not found');
     return this.prisma.gameServer.update({ where: { id }, data: { nodeId: null } });
   }
+
+  async start(orgId: string, id: string) {
+    // Require assignment to a node to start
+    const s = await this.prisma.gameServer.findFirst({
+      where: { id, orgId },
+      select: { id: true, nodeId: true, status: true },
+    });
+    if (!s) throw new NotFoundException('Server not found');
+    if (!s.nodeId) throw new BadRequestException('Server must be assigned to a node before starting');
+
+    // TODO: call agent on the node to start the server (HTTP/gRPC). For now, simulate.
+    return this.prisma.gameServer.update({
+      where: { id },
+      data: { status: 'starting' },
+    });
+  }
+
+  async stop(orgId: string, id: string) {
+    const s = await this.prisma.gameServer.findFirst({
+      where: { id, orgId },
+      select: { id: true, status: true },
+    });
+    if (!s) throw new NotFoundException('Server not found');
+
+    // TODO: call agent to stop; simulate now.
+    return this.prisma.gameServer.update({
+      where: { id },
+      data: { status: 'stopped' },
+    });
+  }
+
+  async restart(orgId: string, id: string) {
+    const s = await this.prisma.gameServer.findFirst({
+      where: { id, orgId },
+      select: { id: true, nodeId: true, status: true },
+    });
+    if (!s) throw new NotFoundException('Server not found');
+    if (!s.nodeId) throw new BadRequestException('Server must be assigned to a node before restarting');
+
+    // TODO: call agent to restart; simulate now.
+    return this.prisma.gameServer.update({
+      where: { id },
+      data: { status: 'starting' },
+    });
+  }
+
 
 }

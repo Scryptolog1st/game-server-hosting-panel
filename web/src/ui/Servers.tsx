@@ -22,13 +22,16 @@ export function Servers() {
   const [name, setName] = useState('My CS2 Server');
   const [gameId, setGameId] = useState('cs2');
   const [message, setMessage] = useState('');
+  const [busy, setBusy] = useState<string | null>(null); // serverId while action runs
 
   const load = async () => {
     try {
       const [servers, ns] = await Promise.all([api.listServers(), api.listNodes()]);
       setList(servers);
       setNodes(ns);
-    } catch (e: any) { setMessage(e.message); }
+    } catch (e: any) {
+      setMessage(e.message);
+    }
   };
   useEffect(() => { load(); }, []);
 
@@ -59,6 +62,21 @@ export function Servers() {
     } catch (e: any) { setMessage(e.message); }
   };
 
+  const act = async (serverId: string, action: 'start'|'stop'|'restart') => {
+    setMessage('');
+    setBusy(serverId);
+    try {
+      if (action === 'start') await api.startServer(serverId);
+      if (action === 'stop') await api.stopServer(serverId);
+      if (action === 'restart') await api.restartServer(serverId);
+      await load();
+    } catch (e: any) {
+      setMessage(e.message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <div style={{ display: 'grid', gap: 16 }}>
       <h2>Servers</h2>
@@ -75,6 +93,7 @@ export function Servers() {
         <tbody>
           {list.map(s => {
             const current = nodes.find(n => n.id === s.nodeId);
+            const isBusy = busy === s.id;
             return (
               <tr key={s.id}>
                 <td>{s.name}</td>
@@ -82,13 +101,22 @@ export function Servers() {
                 <td>{s.status}</td>
                 <td>{current ? `${current.name} (${current.hostname})` : <i>none</i>}</td>
                 <td style={{ whiteSpace: 'nowrap' }}>
-                  <select defaultValue={s.nodeId ?? ''} onChange={(e) => assign(s.id, e.target.value)}>
+                  <select defaultValue={s.nodeId ?? ''} onChange={(e) => assign(s.id, e.target.value)} disabled={isBusy}>
                     <option value="">-- choose node --</option>
                     {nodes.map(n => (
                       <option key={n.id} value={n.id}>{n.name} · {n.hostname}</option>
                     ))}
                   </select>
-                  {s.nodeId && <button onClick={() => unassign(s.id)} style={{ marginLeft: 8 }}>Unassign</button>}
+                  {s.nodeId && (
+                    <button onClick={() => unassign(s.id)} style={{ marginLeft: 8 }} disabled={isBusy}>
+                      Unassign
+                    </button>
+                  )}
+                  <div style={{ display: 'inline-flex', gap: 6, marginLeft: 12 }}>
+                    <button onClick={() => act(s.id, 'start')} disabled={isBusy}>Start</button>
+                    <button onClick={() => act(s.id, 'stop')} disabled={isBusy}>Stop</button>
+                    <button onClick={() => act(s.id, 'restart')} disabled={isBusy}>Restart</button>
+                  </div>
                 </td>
                 <td style={{ fontFamily: 'monospace' }}>{s.id}</td>
               </tr>

@@ -65,4 +65,26 @@ export class ServersController {
   async unassign(@CU() user: any, @Param('id') id: string) {
     return this.svc.unassign(user.org, id);
   }
+
+  @Post(':id/start')
+  @UseGuards(RolesGuard)
+  @RequireRoles('Owner', 'Admin', 'Operator')
+  async start(@CU() user: any, @Param('id') id: string) {
+    return this.svc.start(user.org, id);
+  }
+
+  @Post(':id/stop')
+  @UseGuards(RolesGuard)
+  @RequireRoles('Owner', 'Admin', 'Operator')
+  async stop(@CU() user: any, @Param('id') id: string) {
+    return this.svc.stop(user.org, id);
+  }
+
+  @Post(':id/restart')
+  @UseGuards(RolesGuard)
+  @RequireRoles('Owner', 'Admin', 'Operator')
+  async restart(@CU() user: any, @Param('id') id: string) {
+    return this.svc.restart(user.org, id);
+  }
+
 }

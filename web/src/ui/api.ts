@@ -14,13 +14,22 @@ export function clearTokens() {
 
 async function req(path: string, opts: RequestInit = {}) {
   const headers = new Headers(opts.headers || {});
-  headers.set('Content-Type', 'application/json');
   const tok = getToken();
   if (tok) headers.set('Authorization', `Bearer ${tok}`);
+
+  // 👉 Only set Content-Type if we actually have a body
+  if (opts.body !== undefined && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
   const res = await fetch(API + path, { ...opts, headers });
   if (!res.ok) throw new Error(await res.text());
-  return res.json();
+
+  // handle empty responses safely
+  const text = await res.text();
+  return text ? JSON.parse(text) : {};
 }
+
 
 export const api = {
   // auth
@@ -44,4 +53,12 @@ export const api = {
     }),
   unassignServer: (serverId: string) =>
     req(`/servers/${serverId}/unassign`, { method: 'PATCH' }),
+
+  startServer: (serverId: string) =>
+    req(`/servers/${serverId}/start`, { method: 'POST' }),
+  stopServer: (serverId: string) =>
+    req(`/servers/${serverId}/stop`, { method: 'POST' }),
+  restartServer: (serverId: string) =>
+    req(`/servers/${serverId}/restart`, { method: 'POST' }),
+
 };
