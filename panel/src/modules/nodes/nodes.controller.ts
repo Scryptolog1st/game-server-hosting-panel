@@ -1,10 +1,12 @@
-import { Body, Controller, Get, Post, BadRequestException, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Patch, Param, BadRequestException } from '@nestjs/common';
 import { NodesService } from './nodes.service';
 import { JwtGuard } from '../auth/jwt.guard';
 import { CurrentUser as CU } from '../auth/current-user.decorator';
 import { RequireRoles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { CreateTokenDTO, EnrollNodeDTO, HeartbeatDTO } from './nodes.dto';
+import { UpdateNodeDTO } from './nodes.dto';
+import { z } from 'zod';
 
 function parse<T>(schema: any, body: unknown): T {
   const r = schema.safeParse(body);
@@ -44,5 +46,13 @@ export class NodesController {
   async heartbeat(@Body() body: unknown) {
     const dto = parse<{ nodeId: string; nodeKey: string; status?: string }>(HeartbeatDTO, body);
     return this.svc.heartbeat(dto.nodeId, dto.nodeKey, dto.status);
+  }
+
+    @Patch(':id')
+  @UseGuards(JwtGuard, RolesGuard)
+  @RequireRoles('Owner', 'Admin', 'Operator')
+  async update(@CU() user: any, @Param('id') id: string, @Body() body: unknown) {
+    const dto = parse<z.infer<typeof UpdateNodeDTO>>(UpdateNodeDTO, body);
+    return this.svc.update(user.org, id, dto);
   }
 }

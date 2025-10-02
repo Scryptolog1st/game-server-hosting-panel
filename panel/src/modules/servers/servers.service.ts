@@ -51,15 +51,30 @@ export class ServersService {
   }
 
   async start(orgId: string, id: string) {
-    // Require assignment to a node to start
     const s = await this.prisma.gameServer.findFirst({
       where: { id, orgId },
-      select: { id: true, nodeId: true, status: true },
+      select: { id: true, nodeId: true, status: true, gameId: true, name: true },
     });
     if (!s) throw new NotFoundException('Server not found');
     if (!s.nodeId) throw new BadRequestException('Server must be assigned to a node before starting');
 
-    // TODO: call agent on the node to start the server (HTTP/gRPC). For now, simulate.
+    const node = await this.prisma.serverNode.findFirst({
+      where: { id: s.nodeId, orgId },
+      select: { agentUrl: true },
+    });
+    if (!node || !node.agentUrl) throw new BadRequestException('Node has no agentUrl set');
+
+    // Call agent
+    const res = await fetch(`${node.agentUrl}/v1/server/start`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ serverId: id, gameId: s.gameId, name: s.name }),
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      throw new BadRequestException(`Agent start failed: ${res.status} ${txt}`);
+    }
+
     return this.prisma.gameServer.update({
       where: { id },
       data: { status: 'starting' },
@@ -69,11 +84,32 @@ export class ServersService {
   async stop(orgId: string, id: string) {
     const s = await this.prisma.gameServer.findFirst({
       where: { id, orgId },
-      select: { id: true, status: true },
+      select: { id: true, nodeId: true, gameId: true, name: true },
     });
     if (!s) throw new NotFoundException('Server not found');
 
-    // TODO: call agent to stop; simulate now.
+    const node = s.nodeId
+      ? await this.prisma.serverNode.findFirst({
+        where: { id: s.nodeId, orgId },
+        select: { agentUrl: true },
+      })
+      : null;
+
+    if (!node || !node.agentUrl) {
+      // allow stop to succeed locally even if agentUrl missing
+      return this.prisma.gameServer.update({ where: { id }, data: { status: 'stopped' } });
+    }
+
+    const res = await fetch(`${node.agentUrl}/v1/server/stop`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ serverId: id, gameId: s.gameId, name: s.name }),
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      throw new BadRequestException(`Agent stop failed: ${res.status} ${txt}`);
+    }
+
     return this.prisma.gameServer.update({
       where: { id },
       data: { status: 'stopped' },
@@ -83,12 +119,27 @@ export class ServersService {
   async restart(orgId: string, id: string) {
     const s = await this.prisma.gameServer.findFirst({
       where: { id, orgId },
-      select: { id: true, nodeId: true, status: true },
+      select: { id: true, nodeId: true, gameId: true, name: true },
     });
     if (!s) throw new NotFoundException('Server not found');
     if (!s.nodeId) throw new BadRequestException('Server must be assigned to a node before restarting');
 
-    // TODO: call agent to restart; simulate now.
+    const node = await this.prisma.serverNode.findFirst({
+      where: { id: s.nodeId, orgId },
+      select: { agentUrl: true },
+    });
+    if (!node || !node.agentUrl) throw new BadRequestException('Node has no agentUrl set');
+
+    const res = await fetch(`${node.agentUrl}/v1/server/restart`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ serverId: id, gameId: s.gameId, name: s.name }),
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      throw new BadRequestException(`Agent restart failed: ${res.status} ${txt}`);
+    }
+
     return this.prisma.gameServer.update({
       where: { id },
       data: { status: 'starting' },

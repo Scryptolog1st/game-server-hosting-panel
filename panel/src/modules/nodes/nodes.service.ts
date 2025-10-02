@@ -1,6 +1,9 @@
+import { UpdateNodeDTO } from './nodes.dto'; // top
+import { z } from 'zod';
 import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../db/prisma.service';
 import * as crypto from 'crypto';
+
 
 function sha256(s: string) {
   return crypto.createHash('sha256').update(s).digest('hex');
@@ -19,6 +22,19 @@ export class NodesService {
       orderBy: { createdAt: 'desc' },
       select: {
         id: true, name: true, hostname: true, status: true, lastSeenAt: true, createdAt: true,
+      },
+    });
+  }
+
+  async update(orgId: string, id: string, data: z.infer<typeof UpdateNodeDTO>) {
+    const node = await this.prisma.serverNode.findFirst({ where: { id, orgId }, select: { id: true } });
+    if (!node) throw new NotFoundException('Node not found');
+    return this.prisma.serverNode.update({
+      where: { id },
+      data: {
+        ...(data.name ? { name: data.name } : {}),
+        ...(data.hostname ? { hostname: data.hostname } : {}),
+        ...(data.agentUrl !== undefined ? { agentUrl: data.agentUrl } : {}),
       },
     });
   }

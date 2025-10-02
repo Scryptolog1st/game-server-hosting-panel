@@ -69,4 +69,18 @@ export const api = {
   restartServer: (serverId: string) =>
     req(`/servers/${serverId}/restart`, { method: 'POST' }),
 
+  updateNode: (id: string, payload: any) =>
+    req(`/nodes/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+
+  
+
+  // in api.ts
+  updateNodeUrl: (nodeId: string, agentUrl: string) =>
+    req(`/nodes/${nodeId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ agentUrl }),
+    }),
+
+
+
 };

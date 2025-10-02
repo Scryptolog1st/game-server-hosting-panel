@@ -26,6 +26,17 @@ export function Nodes() {
 
   useEffect(() => { load(); }, []);
 
+  const saveAgentUrl = async (nodeId: string, url: string) => {
+    setMessage('');
+    try {
+      await api.updateNodeUrl(nodeId, url);
+      await load();
+    } catch (e: any) {
+      setMessage(e.message);
+    }
+  };
+
+
   const createToken = async () => {
     setMsg('');
     try {
@@ -72,22 +83,59 @@ export NODE_HOSTNAME=$(hostname -I | awk '{print $1}')
             <th>Hostname</th>
             <th>Status</th>
             <th>Last Seen</th>
+            <th>Agent URL</th>
             <th>ID</th>
           </tr>
         </thead>
+
         <tbody>
           {nodes.map(n => (
-            <tr key={n.id}>
-              <td>{n.name}</td>
-              <td>{n.hostname}</td>
-              <td>{n.status}</td>
-              <td>{n.lastSeenAt ? new Date(n.lastSeenAt).toLocaleString() : <i>never</i>}</td>
-              <td style={{ fontFamily: 'monospace' }}>{n.id}</td>
-            </tr>
+            <NodeRowItem key={n.id} node={n} />
           ))}
-          {nodes.length === 0 && <tr><td colSpan={5}><i>No nodes yet</i></td></tr>}
+          {nodes.length === 0 && <tr><td colSpan={6}><i>No nodes yet</i></td></tr>}
         </tbody>
+
       </table>
     </div>
+  );
+}
+function NodeRowItem({ node }: { node: any }) {
+  const [agentUrl, setAgentUrl] = React.useState(node.agentUrl ?? '');
+  const [saving, setSaving] = React.useState(false);
+  const [msg, setMsg] = React.useState('');
+
+  const save = async () => {
+    setSaving(true); setMsg('');
+    try {
+      await api.updateNode(node.id, { agentUrl });
+      setMsg('Saved');
+    } catch (e: any) {
+      setMsg(e.message || String(e));
+    } finally {
+      setSaving(false);
+      setTimeout(() => setMsg(''), 1200);
+    }
+  };
+
+  return (
+    <tr>
+      <td>{node.name}</td>
+      <td>{node.hostname}</td>
+      <td>{node.status}</td>
+      <td>{node.lastSeenAt ? new Date(node.lastSeenAt).toLocaleString() : <i>never</i>}</td>
+      <td style={{ minWidth: 360 }}>
+        <input
+          style={{ width: '100%' }}
+          value={agentUrl}
+          onChange={e => setAgentUrl(e.target.value)}
+          placeholder="http://<node-ip>:9090"
+        />
+        <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+          <button onClick={save} disabled={saving}>Save</button>
+          {msg && <span style={{ color: msg === 'Saved' ? 'green' : 'red' }}>{msg}</span>}
+        </div>
+      </td>
+      <td style={{ fontFamily: 'monospace' }}>{node.id}</td>
+    </tr>
   );
 }
